@@ -1,23 +1,21 @@
-﻿using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Identity.Client;
-using Microsoft.Identity.Client.Desktop;
+﻿using Microsoft.Identity.Client;
+using Microsoft.Identity.Client.Broker;
 using Microsoft.Identity.Client.Extensions.Msal;
+using Microsoft.IdentityModel.Abstractions;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
-namespace ConsoleApp9
+namespace sso
 {
     public static class Settings
     {
         // Public Client setup
         public const string ClientId = "1d18b3b0-251b-4714-a02a-9956cec86c2d";
-        public const string Authority = "https://login.microsoftonline.com/organizations"; // IMPORTANT: use /organizations for Work and School accounts only
+        public const string Authority = "https://login.microsoftonline.com/common"; // IMPORTANT: use /organizations for Work and School accounts only
         public static readonly string[] Scopes = new[] { "user.read" };
 
         // App registration setup
@@ -97,6 +95,10 @@ namespace ConsoleApp9
                         case '3':
                             await LogoutAsync().ConfigureAwait(false);
                             break;
+                        case 'x':
+                            Console.WriteLine("Exiting...");
+                            await Task.Delay(1000);
+                            return;
                     }
 
                     Console.WriteLine("\n\r\n\rPress any key to continue");
@@ -121,7 +123,7 @@ namespace ConsoleApp9
             {
                 return await _pca.AcquireTokenInteractive(Settings.Scopes)
                     .WithLoginHint(loginHint)
-                    .WithParentActivityOrWindow(GetConsoleWindow())
+                    .WithParentActivityOrWindow(WindowsHelper.GetConsoleOrTerminalWindow())
                     .ExecuteAsync()
                     .ConfigureAwait(false);
             }
@@ -232,8 +234,9 @@ namespace ConsoleApp9
             _pca = PublicClientApplicationBuilder
                             .Create(Settings.ClientId)
                             .WithAuthority(Settings.Authority)
-                            .WithWindowsBroker(true)             // On Mac, Linux and older Windows, a browser will be used (system browser). On Win10+, broker (WAM) is used
+                            .WithBrokerPreview(true)             // On Mac, Linux and older Windows, a browser will be used (system browser). On Win10+, broker (WAM) is used
                             .WithRedirectUri("http://localhost") // Broker doesn't need this, but browser does (redirect uri is http://localhost - this needs to be registered)
+                            .WithLogging(new Logger())
                             .Build();
 
             // token cache storage
@@ -252,11 +255,61 @@ namespace ConsoleApp9
 
             var cacheHelper = await MsalCacheHelper.CreateAsync(storageProperties);
             cacheHelper.RegisterCache(_pca.UserTokenCache);
+        }       
+
+
+    }
+
+    public class Logger : IIdentityLogger
+    {
+        public Logger()
+        {
+            
         }
+        public bool IsEnabled(EventLogLevel eventLogLevel)
+        {
+            return true;
+        }
+
+        public void Log(LogEntry entry)
+        {
+            File.AppendAllText(
+                AppDomain.CurrentDomain.BaseDirectory + @"\logs.txt",
+                entry.Message + "\n");
+        }
+    }
+
+    public static class WindowsHelper
+    {
+        private enum GetAncestorFlags
+        {
+            GetParent = 1,
+            GetRoot = 2,
+            /// <summary>
+            /// Retrieves the owned root window by walking the chain of parent and owner windows returned by GetParent.
+            /// </summary>
+            GetRootOwner = 3
+        }
+
+        /// <summary>
+        /// Retrieves the handle to the ancestor of the specified window.
+        /// </summary>
+        /// <param name="hwnd">A handle to the window whose ancestor is to be retrieved.
+        /// If this parameter is the desktop window, the function returns NULL. </param>
+        /// <param name="flags">The ancestor to be retrieved.</param>
+        /// <returns>The return value is the handle to the ancestor window.</returns>
+        [DllImport("user32.dll", ExactSpelling = true)]
+        private static extern IntPtr GetAncestor(IntPtr hwnd, GetAncestorFlags flags);
 
         [DllImport("kernel32.dll")]
         private static extern IntPtr GetConsoleWindow();
+
+        public static IntPtr GetConsoleOrTerminalWindow()
+        {
+            IntPtr consoleHandle = GetConsoleWindow();
+            IntPtr handle = GetAncestor(consoleHandle, GetAncestorFlags.GetRootOwner);
+
+            return handle;
+        }
     }
-
-
 }
