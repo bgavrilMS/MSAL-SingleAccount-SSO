@@ -186,25 +186,10 @@ namespace sso
             }
             catch (MsalUiRequiredException ex)
             {
-                Console.WriteLine("Could not acquire a token silently from cache or broker... " + ex);
-
-
-                // 3. Integrated Windows Auth
-                if (existingAccount == null)
-                {
-                    Console.WriteLine("Attempting Integrated Windows Auth.");
-                    try
-                    {
-                        return await _pca.AcquireTokenByIntegratedWindowsAuth(Settings.Scopes).ExecuteAsync().ConfigureAwait(false);
-                    }
-                    catch (MsalException e)
-                    {
-                        Console.WriteLine("Windows Integrated Authentication failed. This may happen if the VPN is disabled. Exception " + e);
-                    }
-                }
+                Console.WriteLine("Could not acquire a token silently from cache or broker... " + ex);             
             }
 
-            // 4. If all else fails, use interactive auth
+            // 3. If all else fails, use interactive auth
             return await LoginInteractiveAsync(existingAccount?.Username).ConfigureAwait(false);
         }
 
