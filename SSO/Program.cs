@@ -219,7 +219,7 @@ namespace sso
             _pca = PublicClientApplicationBuilder
                             .Create(Settings.ClientId)
                             .WithAuthority(Settings.Authority)
-                            .WithBrokerPreview(true)             // On Mac, Linux and older Windows, a browser will be used (system browser). On Win10+, broker (WAM) is used
+                            .WithBroker(new BrokerOptions(BrokerOptions.OperatingSystems.Windows))
                             .WithRedirectUri("http://localhost") // Broker doesn't need this, but browser does (redirect uri is http://localhost - this needs to be registered)
                             .WithLogging(new Logger())
                             .Build();
