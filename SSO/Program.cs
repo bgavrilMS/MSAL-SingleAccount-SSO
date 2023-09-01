@@ -14,9 +14,9 @@ namespace sso
     public static class Settings
     {
         // Public Client setup
-        public const string ClientId = "1d18b3b0-251b-4714-a02a-9956cec86c2d";
-        public const string Authority = "https://login.microsoftonline.com/common"; // IMPORTANT: use /organizations for Work and School accounts only
-        public static readonly string[] Scopes = new[] { "user.read" };
+        public const string ClientId = "9bc3ab49-b65d-410a-85ad-de819febfddc";
+        public const string Authority = "https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47"; // IMPORTANT: use /organizations for Work and School accounts only
+        public static readonly string[] Scopes = new[] { "https://microsoft.sharepoint.com/.default" };
 
         // App registration setup
         // 1. Register http://localhost redirect URI (for system browser for Mac, Linux etc.)
@@ -219,9 +219,10 @@ namespace sso
             _pca = PublicClientApplicationBuilder
                             .Create(Settings.ClientId)
                             .WithAuthority(Settings.Authority)
-                            .WithBroker(new BrokerOptions(BrokerOptions.OperatingSystems.Windows))
-                            .WithRedirectUri("http://localhost") // Broker doesn't need this, but browser does (redirect uri is http://localhost - this needs to be registered)
-                            .WithLogging(new Logger())
+                            .WithDefaultRedirectUri()
+                            //.WithBroker(new BrokerOptions(BrokerOptions.OperatingSystems.Windows))
+                            .WithRedirectUri("https://oauth.spops.microsoft.com") // Broker doesn't need this, but browser does (redirect uri is http://localhost - this needs to be registered)
+                            .WithLogging(new Logger(), enablePiiLogging: true)
                             .Build();
 
             // token cache storage
